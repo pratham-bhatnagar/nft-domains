@@ -1,29 +1,41 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
-// will compile your contracts, add the Hardhat Runtime Environment's members to the
-// global scope, and execute the script.
-const hre = require("hardhat");
+const main = async () => {
+  const domainContractFactory = await hre.ethers.getContractFactory("Domains");
+  const domainContract = await domainContractFactory.deploy("ezpz");
+  await domainContract.deployed();
 
-async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-  const unlockTime = currentTimestampInSeconds + ONE_YEAR_IN_SECS;
+  console.log("Contract deployed to:", domainContract.address);
+  const startEstimate = await domainContract.estimateGas.register("drip");
 
-  const lockedAmount = hre.ethers.utils.parseEther("1");
+  let txn = await domainContract.register(
+    "drip",
+    {
+      value: hre.ethers.utils.parseEther("0.01"),
+    },
+    {
+      gasLimit: startEstimate,
+    }
+  );
+  await txn.wait();
+  console.log("Minted domain drip.ezpz");
 
-  const Lock = await hre.ethers.getContractFactory("Lock");
-  const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
+  txn = await domainContract.setRecord("drip", "just drip it");
+  await txn.wait();
+  console.log("Set record for drip.ezpz");
 
-  await lock.deployed();
+  const address = await domainContract.getAddress("drip");
+  console.log("Owner of domain drip:", address);
 
-  console.log("Lock with 1 ETH deployed to:", lock.address);
-}
+  const balance = await hre.ethers.provider.getBalance(domainContract.address);
+  console.log("Contract balance:", hre.ethers.utils.formatEther(balance));
+};
+const runMain = async () => {
+  try {
+    await main();
+    process.exit(0);
+  } catch (error) {
+    console.log(error);
+    process.exit(1);
+  }
+};
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+runMain();
