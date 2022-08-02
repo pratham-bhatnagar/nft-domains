@@ -6,15 +6,9 @@ const main = async () => {
   console.log("Contract deployed to:", domainContract.address);
   const startEstimate = await domainContract.estimateGas.register("drip");
 
-  let txn = await domainContract.register(
-    "drip",
-    {
-      value: hre.ethers.utils.parseEther("0.01"),
-    },
-    {
-      gasLimit: startEstimate,
-    }
-  );
+  let txn = await domainContract.register("drip", {
+    value: hre.ethers.utils.parseEther(startEstimate),
+  });
   await txn.wait();
   console.log("Minted domain drip.ezpz");
 
